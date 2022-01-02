@@ -20,8 +20,10 @@
  *    console.log(r.height);      // => 20
  *    console.log(r.getArea());   // => 200
  */
-function Rectangle(/* width, height */) {
-  throw new Error('Not implemented');
+function Rectangle(width, height) {
+  this.width = width;
+  this.height = height;
+  this.getArea = () => this.width * this.height;
 }
 
 
@@ -35,8 +37,8 @@ function Rectangle(/* width, height */) {
  *    [1,2,3]   =>  '[1,2,3]'
  *    { width: 10, height : 20 } => '{"height":10,"width":20}'
  */
-function getJSON(/* obj */) {
-  throw new Error('Not implemented');
+function getJSON(obj) {
+  return JSON.stringify(obj);
 }
 
 
@@ -51,8 +53,10 @@ function getJSON(/* obj */) {
  *    const r = fromJSON(Circle.prototype, '{"radius":10}');
  *
  */
-function fromJSON(/* proto, json */) {
-  throw new Error('Not implemented');
+function fromJSON(proto, json) {
+  const obj = JSON.parse(json);
+  const values = Object.values(obj);
+  return new proto.constructor(...values);
 }
 
 
@@ -110,33 +114,111 @@ function fromJSON(/* proto, json */) {
  *  For more examples see unit tests.
  */
 
+class BaseElementSelector {
+  constructor() {
+    this.selector = '';
+    this.selectorsChain = '';
+    this.order = 0;
+  }
+
+  element(value) {
+    this.isMethodInThis('element');
+    this.isCorrectOrder(1);
+    this.selector += value;
+    this.selectorsChain += 'element';
+    return this;
+  }
+
+  id(value) {
+    this.isMethodInThis('id');
+    this.isCorrectOrder(2);
+    this.selector += `#${value}`;
+    this.selectorsChain += 'id';
+    return this;
+  }
+
+  class(value) {
+    this.isCorrectOrder(3);
+    this.selector += `.${value}`;
+    return this;
+  }
+
+  attr(value) {
+    this.isCorrectOrder(4);
+    this.selector += `[${value}]`;
+    return this;
+  }
+
+  pseudoClass(value) {
+    this.isCorrectOrder(5);
+    this.selector += `:${value}`;
+    return this;
+  }
+
+  pseudoElement(value) {
+    this.isCorrectOrder(6);
+    this.isMethodInThis('pseudoElement');
+    this.selector += `::${value}`;
+    this.selectorsChain += 'pseudoElement';
+    return this;
+  }
+
+  stringify() {
+    return this.selector;
+  }
+
+  isMethodInThis(method) {
+    if (this.selectorsChain.indexOf(method) !== -1) {
+      throw Error('Element, id and pseudo-element should not occur more then one time inside the selector');
+    }
+  }
+
+  isCorrectOrder(order) {
+    if (this.order > order) {
+      throw Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
+    this.order = order;
+  }
+}
+
 const cssSelectorBuilder = {
-  element(/* value */) {
-    throw new Error('Not implemented');
+
+  element(value) {
+    return !this.hasOwnKey() ? new BaseElementSelector().element(value) : this.element(value);
   },
 
-  id(/* value */) {
-    throw new Error('Not implemented');
+  id(value) {
+    return !this.hasOwnKey() ? new BaseElementSelector().id(value) : this.id(value);
   },
 
-  class(/* value */) {
-    throw new Error('Not implemented');
+  class(value) {
+    return !this.hasOwnKey() ? new BaseElementSelector().class(value) : this.class(value);
   },
 
-  attr(/* value */) {
-    throw new Error('Not implemented');
+  attr(value) {
+    return !this.hasOwnKey() ? new BaseElementSelector().attr(value) : this.attr(value);
   },
 
-  pseudoClass(/* value */) {
-    throw new Error('Not implemented');
+  pseudoClass(value) {
+    return !this.hasOwnKey() ? new BaseElementSelector().pseudoClass(value)
+      : this.pseudoClass(value);
   },
 
-  pseudoElement(/* value */) {
-    throw new Error('Not implemented');
+  pseudoElement(value) {
+    return !this.hasOwnKey() ? new BaseElementSelector().pseudoElement(value)
+      : this.pseudoElement(value);
   },
 
-  combine(/* selector1, combinator, selector2 */) {
-    throw new Error('Not implemented');
+  combine(selector1, combinator, selector2) {
+    return new BaseElementSelector().element(`${selector1.stringify()} ${combinator} ${selector2.stringify()}`);
+  },
+
+  stringify() {
+    return this.selector;
+  },
+
+  hasOwnKey(key = 'selector') {
+    return key in this;
   },
 };
 
